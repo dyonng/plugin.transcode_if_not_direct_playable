@@ -1,0 +1,15 @@
+{
+    "author": "dyonng",
+    "compatibility": [
+        2
+    ],
+    "description": "Only queue files that are not directly playable (AVI, Hi10P H.264, AV1 and legacy codecs). Leaves HEVC and 8-bit H.264 alone.",
+    "icon": "",
+    "id": "transcode_if_not_direct_playable",
+    "name": "Transcode If Not Direct Playable",
+    "priorities": {
+        "on_library_management_file_test": 0
+    },
+    "tags": "video,ffmpeg",
+    "version": "0.0.1"
+}
