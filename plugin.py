@@ -86,7 +86,7 @@ def _ffprobe(path):
     try:
         result = subprocess.run(
             ["ffprobe", "-v", "error", "-show_entries",
-             "stream=codec_name,codec_type,pix_fmt,width,height",
+             "stream=codec_name,codec_type,pix_fmt,width,height:stream_disposition=attached_pic",
              "-show_entries", "format=format_name,duration",
              "-of", "json", path],
             capture_output=True, text=True, timeout=120)
@@ -142,13 +142,22 @@ def on_library_management_file_test(data, file_metadata=None):
     # 2. Probe streams
     probe = _ffprobe(abspath)
     if not probe or not probe.get('streams'):
-        # Cannot determine - stay neutral so other plugins can decide
+        # Cannot determine - decline rather than risk queueing something
+        # that has nothing to fix (e.g. audio-only files).
+        skip("probe failed or unreadable")
         return data
 
-    video_streams = [s for s in probe.get('streams', [])
-                     if s.get('codec_type') == 'video'
-                     and s.get('disposition', {}).get('attached_pic', 0) != 1]
+    # Cover art (mjpeg/png/bmp) common in music files is not real video
+    COVER_ART_CODECS = {'mjpeg', 'png', 'bmp', 'gif', 'webp'}
+    video_streams = [
+        s for s in probe.get('streams', [])
+        if s.get('codec_type') == 'video'
+        and int(s.get('disposition', {}).get('attached_pic', 0) or 0) != 1
+        and str(s.get('codec_name', '') or '').lower() not in COVER_ART_CODECS
+    ]
     if not video_streams:
+        # Audio-only file, or only embedded cover art. Nothing to fix.
+        skip("audio-only / no real video stream")
         return data
 
     stream = video_streams[0]
